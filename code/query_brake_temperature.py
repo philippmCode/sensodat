@@ -2,13 +2,13 @@ from pymongo import MongoClient
 from pymongo.server_api import ServerApi
 import matplotlib.pyplot as plt
 
-# MongoDB Verbindung
+# MongoDB connection
 uri = "mongodb://msr:fooBar@localhost:27017/?authMechanism=DEFAULT"
 client = MongoClient(uri, server_api=ServerApi('1'))
 db = client.get_database('sdc_sim_data')
 collection = db['campaign_2_frenetic']
 
-# Ein Dokument abrufen
+# find one document
 doc = collection.find_one()
 execution_data = doc.get("execution_data", {})
 simulation_data = execution_data.get("simulation_data", [])
@@ -19,12 +19,12 @@ print("Length of simulation_data:", len(simulation_data))
 if len(simulation_data) > 0:
     print("First item keys:", simulation_data[0].keys())
 
-# Listen für alle Räder vorbereiten
+# all wheels: FL, FR, RL, RR
 times = []
 brake_core = {"FL": [], "FR": [], "RL": [], "RR": []}
 brake_surface = {"FL": [], "FR": [], "RL": [], "RR": []}
 
-# Daten sammeln
+# collect data
 for frame in simulation_data:
     sensors = frame.get("sensors", {}).get("_data", {})
     wheel_thermals = sensors.get("wheelThermals", {})
@@ -36,7 +36,7 @@ for frame in simulation_data:
             brake_core[wheel].append(data.get("brakeCoreTemperature"))
             brake_surface[wheel].append(data.get("brakeSurfaceTemperature"))
 
-# Plotten
+# plotting
 plt.figure(figsize=(12, 6))
 
 for wheel in ["FL", "FR", "RL", "RR"]:
