@@ -1,2 +1,4 @@
 .idea
 venv
+
+/src/metamodel/smm_simulation_output.xmi
