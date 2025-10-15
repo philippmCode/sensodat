@@ -1,4 +1,6 @@
 from pyecore.ecore import EPackage, EClass, EAttribute, EReference, EString, EBoolean, EFloat
+from pyecore.resources import global_registry
+from graphviz import Digraph
 
 
 def create_smm_metamodel():
@@ -14,11 +16,9 @@ def create_smm_metamodel():
     # Classes
     AbstractMeasureElement = EClass('AbstractMeasureElement')
     Observation = EClass('Observation')
-    ObservationScope = EClass('ObservationScope')
     ObservedMeasure = EClass('ObservedMeasure')
     Measure = EClass('Measure')
     Measurement = EClass('Measurement')
-    Element = EClass('Element')
     Attribute = EClass('Attribute')
 
     # Fügen Sie diese Zeilen im Abschnitt "Klassen" oder direkt danach hinzu:
@@ -28,26 +28,12 @@ def create_smm_metamodel():
 
     # Attributes
     Observation.eStructuralFeatures.extend([
-        EAttribute('observer', EString, upper=1),
-        EAttribute('tool', EString, upper=1),
         EAttribute('whenObserved', EFloat, upper=1)  # as time is defined as seconds past
     ])
 
-    ObservationScope.eStructuralFeatures.append(EAttribute('scopeUri', EString))
-
     Measure.eStructuralFeatures.extend([
         EAttribute('name', EString),
-        EAttribute('measureLabelFormat', EString, upper=1),
-        EAttribute('measurementLabelFormat', EString, upper=1),
-        EAttribute('visible', EBoolean, upper=1, default_value=True),
         EAttribute('source', EString, upper=1),
-        EAttribute('scale', EString, upper=1),
-        EAttribute('customScale', EString, upper=1)
-    ])
-
-    Measurement.eStructuralFeatures.extend([
-        EAttribute('breakValue', EString, upper=1),
-        EAttribute('error', EString, upper=1)
     ])
 
     # references
@@ -56,7 +42,6 @@ def create_smm_metamodel():
     )
 
     Observation.eStructuralFeatures.extend([
-        EReference('scopes', ObservationScope, upper=-1, containment=True),
         EReference('observedMeasures', ObservedMeasure, upper=-1, containment=True)
     ])
 
@@ -71,10 +56,6 @@ def create_smm_metamodel():
     ])
 
     Measurement.eStructuralFeatures.append(
-        EReference('measurand', Element)
-    )
-
-    Measurement.eStructuralFeatures.append(
         EReference('attributes', Attribute, upper=-1, containment=True)
     )
 
@@ -86,11 +67,9 @@ def create_smm_metamodel():
     smm.eClassifiers.extend([
         AbstractMeasureElement,
         Observation,
-        ObservationScope,
         ObservedMeasure,
         Measure,
         Measurement,
-        Element,
         Attribute
     ])
 
@@ -101,3 +80,31 @@ def create_smm_metamodel():
     print('✅ smm_metamodel done.')
 
     return smm
+
+def visualize_metamodel(epackage):
+    dot = Digraph(comment=epackage.name)
+
+    # Knoten für jede Klasse
+    for cls in epackage.eClassifiers:
+        if isinstance(cls, EClass):
+            attrs = [f'{a.name}: {a.eType.name}' for a in cls.eStructuralFeatures if isinstance(a, EAttribute)]
+            label = f'{cls.name}\n' + '\n'.join(attrs)
+            dot.node(cls.name, label=label, shape='box')
+
+    # Kanten für Vererbungen
+    for cls in epackage.eClassifiers:
+        if isinstance(cls, EClass):
+            for parent in cls.eSuperTypes:
+                dot.edge(parent.name, cls.name, arrowhead='onormal')
+
+    # Kanten für Referenzen
+    for cls in epackage.eClassifiers:
+        if isinstance(cls, EClass):
+            for ref in cls.eReferences:
+                target_name = ref.eType.name
+                dot.edge(cls.name, target_name, label=ref.name, style='dashed')
+
+    dot.render('smm_metamodel.gv', view=True)  # erzeugt und öffnet die Datei
+    print("✅ Diagramm erstellt: smm_metamodel.gv.pdf")
+
+

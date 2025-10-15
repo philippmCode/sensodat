@@ -1,5 +1,8 @@
+from collections import defaultdict
+
 from pymongo import MongoClient
 from pymongo.server_api import ServerApi
+from graphviz import Digraph
 
 # MongoDB connection string: assumes user 'msr' with password 'fooBar' on localhost:27017
 MONGO_URI = "mongodb://msr:fooBar@localhost:27017/?authMechanism=DEFAULT"
@@ -143,3 +146,103 @@ def populate_smm_model(smm_package, simulation_data):
         all_observations.append(current_observation)
 
     return all_observations, measures_cache
+
+import random
+
+def visualize_model_instances(observations, limit_measurements=15, max_measures=3):
+    """
+    Visualizes Measurements that have 'temperature' or 'speed' in their names/attributes,
+    limiting to `limit_measurements` total and from at most `max_measures` ObservedMeasures.
+    """
+    dot = Digraph(comment="SMM Model Instances")
+
+    # Vordefinierte Measure-Knoten
+    measure_nodes = {
+        "temperature": "Measure: Temperature",
+        "speed": "Measure: Speed"
+    }
+    for key, label in measure_nodes.items():
+        dot.node(f"measure_{key}", label, shape="box", style="filled", color="lightblue")
+
+    # Alle relevanten Measurements nach ObservedMeasure gruppieren
+    om_to_measurements = defaultdict(list)
+    obs_map = {}  # Measurement -> (Observation, ObservedMeasure)
+
+    for obs in observations:
+        for om in getattr(obs, "observedMeasures", []):
+            om_name = getattr(om.measure, "name", "").lower()
+            for m in getattr(om, "measurements", []):
+                # Textinhalt aus Namen und Attributen
+                attr_text = " ".join(f"{getattr(a, 'tag', '').lower()} {getattr(a, 'value', '').lower()}"
+                                     for a in getattr(m, "attributes", []))
+                combined_text = f"{om_name} {attr_text}"
+                if "temperature" in combined_text or "speed" in combined_text:
+                    om_to_measurements[om].append(m)
+                    obs_map[m] = (obs, om)
+
+    print(f"📊 Found {sum(len(v) for v in om_to_measurements.values())} relevant measurements "
+          f"across {len(om_to_measurements)} ObservedMeasures")
+
+    # Maximal `max_measures` ObservedMeasures zufällig auswählen
+    selected_oms = random.sample(list(om_to_measurements.keys()), min(max_measures, len(om_to_measurements)))
+
+    # Aus den ausgewählten ObservedMeasures zufällig bis zu `limit_measurements` total auswählen
+    selected_measurements = []
+    remaining = limit_measurements
+    for om in selected_oms:
+        ms = om_to_measurements[om]
+        if len(ms) > remaining:
+            ms = random.sample(ms, remaining)
+        selected_measurements.extend(ms)
+        remaining -= len(ms)
+        if remaining <= 0:
+            break
+
+    print(f"🧩 Visualizing {len(selected_measurements)} measurements from {len(selected_oms)} ObservedMeasures")
+
+    drawn_obs = set()
+    drawn_oms = set()
+
+    for m in selected_measurements:
+        obs, om = obs_map[m]
+
+        # Observation-Knoten
+        if obs not in drawn_obs:
+            observer = getattr(obs, "observer", "")
+            when_observed = getattr(obs, "whenObserved", "")
+            dot.node(f"obs_{id(obs)}", f"Observation\nobserver={observer}\nwhenObserved={when_observed}",
+                     shape="box", style="filled", color="lightgray")
+            drawn_obs.add(obs)
+
+        # ObservedMeasure-Knoten
+        if om not in drawn_oms:
+            om_name = getattr(om.measure, "name", "")
+            dot.node(f"om_{id(om)}", f"ObservedMeasure\nname={om_name}",
+                     shape="box", style="rounded,filled", color="white")
+            dot.edge(f"obs_{id(obs)}", f"om_{id(om)}")
+            drawn_oms.add(om)
+
+            # Verbindung zu Temperature/Speed Measure
+            om_text = om_name.lower()
+            for a in getattr(m, "attributes", []):
+                tag = getattr(a, "tag", "").lower()
+                value = getattr(a, "value", "").lower()
+                om_text += f" {tag} {value}"
+            for key in measure_nodes.keys():
+                if key in om_text:
+                    dot.edge(f"om_{id(om)}", f"measure_{key}", color="blue", style="bold")
+
+        # Measurement-Knoten
+        dot.node(f"m_{id(m)}", "Measurement", shape="box", color="lightyellow")
+        dot.edge(f"om_{id(om)}", f"m_{id(m)}")
+
+        # Attribute-Knoten
+        for a in getattr(m, "attributes", []):
+            tag = getattr(a, "tag", "")
+            value = getattr(a, "value", "")
+            dot.node(f"a_{id(a)}", f"Attribute\n{tag}: {value}", shape="ellipse", color="lightgreen")
+            dot.edge(f"m_{id(m)}", f"a_{id(a)}", style="dotted")
+
+    # Diagramm rendern
+    dot.render("smm_model_instances.gv", view=True)
+    print("✅ Model visualization saved as 'smm_model_instances.gv'")

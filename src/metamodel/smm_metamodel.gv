@@ -1,0 +1,24 @@
+// smm
+digraph {
+	AbstractMeasureElement [label=AbstractMeasureElement
+ shape=box]
+	Observation [label="Observation
+whenObserved: EFloat" shape=box]
+	ObservedMeasure [label=ObservedMeasure
+ shape=box]
+	Measure [label="Measure
+name: EString
+source: EString" shape=box]
+	Measurement [label=Measurement
+ shape=box]
+	Attribute [label="Attribute
+tag: EString
+value: EString" shape=box]
+	AbstractMeasureElement -> Measure [arrowhead=onormal]
+	Observation -> AbstractMeasureElement [label=requestedMeasures style=dashed]
+	Observation -> ObservedMeasure [label=observedMeasures style=dashed]
+	ObservedMeasure -> Measure [label=measure style=dashed]
+	ObservedMeasure -> Measurement [label=measurements style=dashed]
+	Measurement -> Attribute [label=attributes style=dashed]
+	Measurement -> ObservedMeasure [label=observedMeasure style=dashed]
+}

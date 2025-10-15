@@ -2,3 +2,10 @@
 venv
 
 /src/metamodel/smm_simulation_output.xmi
+
+/src/metamodel/smm_simulation_output.gv
+/src/metamodel/smm_simulation_output.gv.pdf
+
+/src/metamodel/smm_model_instances.gv
+/src/metamodel/smm_model_instances.gv.pdf.gv.pdf
+

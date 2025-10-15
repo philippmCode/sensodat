@@ -2,6 +2,9 @@
 
 # Import the required functions from separate scripts
 from pyecore.resources import ResourceSet, URI
+
+from metamodel.populate_smm_metamodel import visualize_model_instances
+from metamodel.smm_metamodel import visualize_metamodel
 from smm_metamodel import create_smm_metamodel
 from populate_smm_metamodel import get_mongodb_data, populate_smm_model
 
@@ -59,3 +62,6 @@ if __name__ == "__main__":
             # Save the file (serializes the model instances to XMI)
             resource.save()
             print(f"✅ Model successfully saved")
+
+            visualize_metamodel(smm_model)
+            visualize_model_instances(model_instance_data)
