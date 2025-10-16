@@ -14,17 +14,11 @@ def create_smm_metamodel():
     smm = EPackage('smm', nsuri='http://example.org/smm', prefix='smm')
 
     # Classes
-    AbstractMeasureElement = EClass('AbstractMeasureElement')
     Observation = EClass('Observation')
     ObservedMeasure = EClass('ObservedMeasure')
     Measure = EClass('Measure')
     Measurement = EClass('Measurement')
     Attribute = EClass('Attribute')
-
-    # Fügen Sie diese Zeilen im Abschnitt "Klassen" oder direkt danach hinzu:
-
-    # inheritance
-    Measure.eSuperTypes.append(AbstractMeasureElement)
 
     # Attributes
     Observation.eStructuralFeatures.extend([
@@ -35,11 +29,6 @@ def create_smm_metamodel():
         EAttribute('name', EString),
         EAttribute('source', EString, upper=1),
     ])
-
-    # references
-    Observation.eStructuralFeatures.append(
-        EReference('requestedMeasures', AbstractMeasureElement, upper=-1)
-    )
 
     Observation.eStructuralFeatures.extend([
         EReference('observedMeasures', ObservedMeasure, upper=-1, containment=True)
@@ -65,7 +54,6 @@ def create_smm_metamodel():
 
     # register classes within the package
     smm.eClassifiers.extend([
-        AbstractMeasureElement,
         Observation,
         ObservedMeasure,
         Measure,
@@ -82,14 +70,22 @@ def create_smm_metamodel():
     return smm
 
 def visualize_metamodel(epackage):
-    dot = Digraph(comment=epackage.name)
+    dot = Digraph(comment=epackage.name, format='pdf')
+    dot.attr(rankdir='BT')  # Klassenhierarchie von oben nach unten
 
     # Knoten für jede Klasse
     for cls in epackage.eClassifiers:
         if isinstance(cls, EClass):
+            # Attribute extrahieren
             attrs = [f'{a.name}: {a.eType.name}' for a in cls.eStructuralFeatures if isinstance(a, EAttribute)]
-            label = f'{cls.name}\n' + '\n'.join(attrs)
-            dot.node(cls.name, label=label, shape='box')
+            attr_text = '\l'.join(attrs) + ('\l' if attrs else '')
+
+            # Klassenname (kursiv, wenn abstrakt)
+            cls_name = f"<i>{cls.name}</i>" if getattr(cls, 'abstract', False) or cls.name.lower().startswith('abstract') else cls.name
+
+            # Label als UML-typisches Klassendiagramm
+            label = f'{{{cls_name}|{attr_text}}}'
+            dot.node(cls.name, label=label, shape='record')
 
     # Kanten für Vererbungen
     for cls in epackage.eClassifiers:
@@ -104,7 +100,9 @@ def visualize_metamodel(epackage):
                 target_name = ref.eType.name
                 dot.edge(cls.name, target_name, label=ref.name, style='dashed')
 
-    dot.render('smm_metamodel.gv', view=True)  # erzeugt und öffnet die Datei
-    print("✅ Diagramm erstellt: smm_metamodel.gv.pdf")
+    # Rendern
+    dot.render('smm_metamodel.gv', view=True)
+    print("✅ UML-ähnliches Diagramm erstellt: smm_metamodel.gv.pdf")
+
 
 

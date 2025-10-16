@@ -1,21 +1,11 @@
 // smm
 digraph {
-	AbstractMeasureElement [label=AbstractMeasureElement
- shape=box]
-	Observation [label="Observation
-whenObserved: EFloat" shape=box]
-	ObservedMeasure [label=ObservedMeasure
- shape=box]
-	Measure [label="Measure
-name: EString
-source: EString" shape=box]
-	Measurement [label=Measurement
- shape=box]
-	Attribute [label="Attribute
-tag: EString
-value: EString" shape=box]
-	AbstractMeasureElement -> Measure [arrowhead=onormal]
-	Observation -> AbstractMeasureElement [label=requestedMeasures style=dashed]
+	rankdir=BT
+	Observation [label="{Observation|whenObserved: EFloat\l}" shape=record]
+	ObservedMeasure [label="{ObservedMeasure|}" shape=record]
+	Measure [label="{Measure|name: EString\lsource: EString\l}" shape=record]
+	Measurement [label="{Measurement|}" shape=record]
+	Attribute [label="{Attribute|tag: EString\lvalue: EString\l}" shape=record]
 	Observation -> ObservedMeasure [label=observedMeasures style=dashed]
 	ObservedMeasure -> Measure [label=measure style=dashed]
 	ObservedMeasure -> Measurement [label=measurements style=dashed]
